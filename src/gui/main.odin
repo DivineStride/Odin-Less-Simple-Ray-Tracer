@@ -1,5 +1,6 @@
-package raytracer
+package gui
 
+import rt "../raytracer/"
 import "core:fmt"
 import "core:os"
 import sdl "vendor:sdl3"
