@@ -346,3 +346,7 @@ config.mak.autogen
 .config-detected
 util/intel-pt-decoder/inat-tables.c
 arch/*/include/generated/
+
+# Removing PPM images to save space
+*.ppm
+images/planets
