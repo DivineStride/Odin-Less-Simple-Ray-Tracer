@@ -1,21 +1,17 @@
 package raytracer
 
-import "core:os"
-
 render_world :: proc(
 	world: int = 10,
 	render: Render_Details = {image_width = 600, samples = 125, depth = 50},
 ) {
-	// Set global after runtime
-	CORE_COUNT = os.get_processor_core_count()
-
 	scene: Scene
 	cam: Camera
+
+	camera_init(&cam)
 
 	render_overwrite := render
 
 	switch world {
-
 	case 1:
 		scene, cam = world_many_spheres(true)
 	case 2:

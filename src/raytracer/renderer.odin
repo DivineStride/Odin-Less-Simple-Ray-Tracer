@@ -1,21 +1,32 @@
 package raytracer
 
 import "core:fmt"
+import "core:os"
 import "core:time"
+
+CORE_COUNT := 1
 
 Render_Details :: struct {
 	image_width, samples, depth: int,
 }
 
-render_to_buffer :: proc(cam: ^Camera, world: []Hittable, buf: []u32) {
+render_set_processor_core_count :: proc() {
+	CORE_COUNT = os.get_processor_core_count()
+}
+
+render_frame_raw :: proc(cam: ^Camera, world: []Hittable, out: []Color, frame_index: int) {
 	camera_init(cam)
 
-	render_start := time.now()
+	build_render_threads(cam, world, out, false, frame_index)
+}
+
+render_to_buffer :: proc(cam: ^Camera, world: []Hittable, buf: []u32) {
+	camera_init(cam)
 
 	pixels := make([]Color, cam.image_height * cam.image_width)
 	defer delete(pixels)
 
-	build_render_threads(cam, world, pixels)
+	build_render_threads(cam, world, pixels, false)
 
 	for c, i in pixels {
 		buf[i] = color_to_xrgb(c * cam.pixel_samples_scale, cam.ev_scale)

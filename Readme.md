@@ -4,6 +4,8 @@
 
 I built this in Odin as a means of learning a bit of Odin. I tried to follow the book closely, but there are many more differences with Odin than there was when I built this in Rust. I did get some help from LLM prompts, but mostly for troubleshooting, code search, and understanding programming theory better. I tried to write as much of the code myself and I don't use anything like Cursor or Claude code to write because this project was created with the intent of learning how these things work.
 
+The core of this project was built by following the book series by Perter Shirley, Trevor David Black, and Steve Hollasch - [_Ray Tracing in One Weekend_](https://raytracing.github.io/)
+
 ## Unique things about the current state
 
 - Somewhat accurate camera aperture simulation (Though I will change this in the future)

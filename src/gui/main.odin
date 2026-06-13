@@ -3,35 +3,20 @@ package gui
 import rt "../raytracer/"
 import "core:fmt"
 import "core:os"
+import "core:thread"
 import sdl "vendor:sdl3"
 
 WINDOW_TITLE :: "Raytracer Viewer"
 WINDOW_WIDTH :: 800
 WINDOW_HEIGHT :: 450
+MAX_SAMPLES :: 512
 
 main :: proc() {
-	if !sdl.Init(sdl.INIT_VIDEO) {
-		fmt.eprintln("SDL_Init failed:", sdl.GetError())
-		os.exit(1)
-	}
-	defer sdl.Quit()
-
-	window := sdl.CreateWindow(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, sdl.WINDOW_RESIZABLE)
-	if window == nil {
-		fmt.eprintln("SDL_CreateWindow failed:", sdl.GetError())
-		os.exit(1)
-	}
-	defer sdl.DestroyWindow(window)
-
-	renderer := sdl.CreateRenderer(window, nil)
-	if renderer == nil {
-		fmt.eprintln("SDL_CreateRenderer failed:", sdl.GetError())
-		os.exit(1)
-	}
-	defer sdl.DestroyRenderer(renderer)
+	app := app_init()
+	defer close_app(app)
 
 	texture := sdl.CreateTexture(
-		renderer,
+		app.renderer,
 		sdl.PixelFormat.XRGB8888,
 		sdl.TextureAccess.STREAMING,
 		WINDOW_WIDTH,
@@ -43,56 +28,83 @@ main :: proc() {
 	}
 	defer sdl.DestroyTexture(texture)
 
-	pixel_buf := make([]u32, WINDOW_WIDTH * WINDOW_HEIGHT)
-	needs_rerender := false
+	ctx: rt.Render_Context
+	rt.render_set_state(&ctx, .Idle)
+	ctx.pixel_buf = make([]u32, WINDOW_WIDTH * WINDOW_HEIGHT)
+	ctx.accum = make([]rt.Color, WINDOW_WIDTH * WINDOW_HEIGHT)
+	ctx.scratch = make([]rt.Color, WINDOW_WIDTH * WINDOW_HEIGHT)
+	defer delete(ctx.pixel_buf)
+	defer delete(ctx.accum)
+	defer delete(ctx.scratch)
+
+
+	// We're only gettin this once, so if we want to update anything it will have to be moved
+	// If we want to adjust image width, we'll need to have this updated within the loop
+	// If want to move the camera, we will need to record the change in the loop
+	ctx.scene, ctx.cam = rt.world_cornell_box()
+
+	rt.camera_init(&ctx.cam)
+
+	ctx.cam.image_width = WINDOW_WIDTH
+	ctx.cam.aspect_ratio = f64(WINDOW_WIDTH) / f64(WINDOW_HEIGHT)
+	ctx.cam.samples_per_pixel = 10
+	ctx.cam.max_depth = 20
+
+	rt.render_set_state(&ctx, .Requested)
+
+
+	render_thread: ^thread.Thread = nil
+
+	defer rt.scene_destroy(&ctx.scene)
 
 	event: sdl.Event
-	running := true
+	main_loop: for {
 
-	for running {
 		for sdl.PollEvent(&event) {
 			#partial switch event.type {
-
 			case .QUIT:
-				running = false
+				break main_loop
 			case .KEY_DOWN:
-				#partial switch event.key.scancode {
-				case .ESCAPE, .Q:
-					running = false
-				case .W:
-					needs_rerender = true
+				if ok := handle_keyboard_press(event.key.scancode, &ctx); !ok {
+					break main_loop
 				}
 			}
 		}
 
-		if needs_rerender {
-			fill_test_gradient(pixel_buf, WINDOW_WIDTH, WINDOW_HEIGHT)
-			needs_rerender = false
+		if rt.render_get_state(&ctx) == .Requested {
+			if render_thread != nil {
+				thread.join(render_thread)
+				thread.destroy(render_thread)
+			}
+
+			sdl.SetWindowTitle(app.window, "Raytracer - rendering...")
+
+			render_thread = thread.create(rt.render_worker)
+			render_thread.data = &ctx
+			thread.start(render_thread)
 		}
 
+		if rt.render_get_state(&ctx) == .Done {
+			rt.accumulate_and_display(&ctx)
+			if ctx.sample_count < MAX_SAMPLES {
+				rt.render_set_state(&ctx, .Requested)
+			} else {
+				rt.render_set_state(&ctx, .Idle)
+			}
+			sdl.SetWindowTitle(app.window, "Raytracer")
+		}
+
+		// We're going to need a way to accumulate samples for this texture as well
 		pitch := i32(WINDOW_WIDTH * size_of(u32))
-		sdl.UpdateTexture(texture, nil, raw_data(pixel_buf), pitch)
+		sdl.UpdateTexture(texture, nil, raw_data(ctx.pixel_buf), pitch)
 
-		sdl.RenderClear(renderer)
-		sdl.RenderTexture(renderer, texture, nil, nil)
-		sdl.RenderPresent(renderer)
+		sdl.RenderClear(app.renderer)
+		sdl.RenderTexture(app.renderer, texture, nil, nil)
+		sdl.RenderPresent(app.renderer)
 	}
-}
 
-fill_test_gradient :: proc(buf: []u32, width, height: int) {
-	for y in 0 ..< height {
-		for x in 0 ..< width {
-			t := f32(y) / f32(height)
-			v := f32(x) / f32(width)
-			r := u32(lerp(0, 255, v))
-			g := u32(lerp(0, 255, t))
-			b := u32(0)
-
-			buf[y * width + x] = (r << 16) | (g << 8) | b
-		}
+	if render_thread != nil {
+		thread.join(render_thread)
+		thread.destroy(render_thread)
 	}
-}
-
-lerp :: proc(a, b: f32, t: f32) -> f32 {
-	return a + (b - a) * t
 }

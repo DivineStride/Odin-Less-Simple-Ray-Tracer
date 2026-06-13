@@ -6,7 +6,7 @@ Material :: union {
 	Burley,
 	Metal,
 	Dielectric,
-	Diffuse,
+	Emissive,
 	Isotropic,
 }
 
@@ -30,8 +30,8 @@ scatter :: proc(
 		return scatter_metal(m, r_in, rec)
 	case Dielectric:
 		return scatter_dielectric(m, r_in, rec)
-	case Diffuse:
-		return scatter_diffuse(m, r_in, rec)
+	case Emissive:
+		return scatter_emissive(m, r_in, rec)
 	case Isotropic:
 		return scatter_isotropic(m, r_in, rec)
 	}

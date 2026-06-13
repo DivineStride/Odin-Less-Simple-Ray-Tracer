@@ -58,7 +58,7 @@ hit_instance :: proc(inst: Instance, r: Ray, ray_t: Interval) -> (Hit_Record, bo
 	// Transform ray to object space
 	offset := linalg.mul(inst.inv_transform, Vec4{r.origin.x, r.origin.y, r.origin.z, 1})
 	direction := linalg.mul(inst.inv_transform, Vec4{r.dir.x, r.dir.y, r.dir.z, 0})
-	object_ray := Ray{offset.xyz, direction.xyz, r.tm}
+	object_ray := new_ray(offset.xyz, direction.xyz, r.tm)
 
 	rec, hit := hit_single(inst.object^, object_ray, ray_t)
 	if !hit do return {}, false

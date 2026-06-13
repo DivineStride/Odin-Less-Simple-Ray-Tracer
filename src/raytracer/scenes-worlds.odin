@@ -3,8 +3,6 @@ package raytracer
 import "core:math/linalg"
 import "core:mem"
 
-CORE_COUNT: int
-
 world_many_spheres :: proc(bounce: bool = false) -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
@@ -30,7 +28,7 @@ world_many_spheres :: proc(bounce: bool = false) -> (scene: Scene, cam: Camera) 
 			if linalg.length(center - Point3{4, 0.2, 0}) > 0.9 {
 				sphere_material := new(Material)
 				if choose_mat < 0.8 {
-					// Diffuse
+					// Emissive
 					albedo := random_vec3() * random_vec3()
 					roughness := random_f64()
 					sphere_material^ = make_burley(albedo, roughness)
@@ -285,7 +283,7 @@ world_simple_light :: proc() -> (scene: Scene, cam: Camera) {
 
 	difflight := new(Material)
 	append(&scene.materials, difflight)
-	difflight^ = make_diffuse(Color{4, 4, 4})
+	difflight^ = make_emissive(Color{4, 4, 4})
 	append(&scene.world, build_quad(Point3{3, 1, -2}, Vec3{2, 0, 0}, Vec3{0, 2, 0}, difflight))
 	append(&scene.world, build_sphere({0, 7, 0}, 2, difflight))
 
@@ -336,7 +334,7 @@ world_cornell_box :: proc() -> (scene: Scene, cam: Camera) {
 	red^ = make_burley(Color{.65, 0.05, 0.05}, 1)
 	white^ = make_burley(Color{.73, .73, .73}, 1)
 	green^ = make_burley(Color{.12, .45, .15}, 1)
-	light^ = make_diffuse(Color{15, 15, 15})
+	light^ = make_emissive(Color{15, 15, 15})
 
 	box_sides := make([dynamic][]Hittable, arena_alloc)
 	box1_raw := new(Hittable)
@@ -411,7 +409,7 @@ world_cornell_smoke :: proc() -> (scene: Scene, cam: Camera) {
 	red^ = make_burley(Color{.65, 0.05, 0.05}, 1)
 	white^ = make_burley(Color{.73, .73, .73}, 1)
 	green^ = make_burley(Color{.12, .45, .15}, 1)
-	light^ = make_diffuse(Color{7, 7, 7})
+	light^ = make_emissive(Color{7, 7, 7})
 
 	box_sides := make([dynamic][]Hittable, arena_alloc)
 	box1_raw := new(Hittable)
@@ -514,7 +512,7 @@ final_scene :: proc() -> (scene: Scene, cam: Camera) {
 	// Light
 	light := new(Material)
 	append(&scene.materials, light)
-	light^ = make_diffuse(Color{7, 7, 7})
+	light^ = make_emissive(Color{7, 7, 7})
 	append(
 		&scene.world,
 		build_quad(Point3{123, 554, 147}, Vec3{300, 0, 0}, Vec3{0, 0, 265}, light),

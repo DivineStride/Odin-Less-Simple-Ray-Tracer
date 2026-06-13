@@ -13,5 +13,5 @@ main :: proc() {
 		depth       = 20,
 	}
 
-	rt.render_world(8, render_details)
+	rt.render_world(4, render_details)
 }

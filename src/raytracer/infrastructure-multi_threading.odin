@@ -22,10 +22,13 @@ Progress_Data :: struct {
 	total_scanlines: int,
 }
 
-build_render_threads :: proc(cam: ^Camera, world: []Hittable, pixels: []Color) {
-	// First we get the thread count and threads
-	num_threads := os.get_processor_core_count()
-
+build_render_threads :: proc(
+	cam: ^Camera,
+	world: []Hittable,
+	pixels: []Color,
+	show_progress := true,
+	seed_multiplier := 1,
+) {
 	// Then we divide tasks for each thread to process
 	scanlines_done: i64 = 0
 	next_row: i64 = 1
@@ -45,32 +48,32 @@ build_render_threads :: proc(cam: ^Camera, world: []Hittable, pixels: []Color) {
 			next_row       = &next_row,
 			scanlines_done = &scanlines_done,
 			id             = i,
-			seed           = u64(i) * rand.uint64() + rand.uint64(),
+			seed           = (u64(i) * rand.uint64() + rand.uint64()) * u64(seed_multiplier),
 		}
 		threads[i] = thread.create(render_rows)
 		threads[i].data = &thread_data[i]
 		thread.start(threads[i])
 	}
 
+	if show_progress {
+		progress_data := Progress_Data {
+			scanlines_done  = &scanlines_done,
+			total_scanlines = cam.image_height,
+		}
 
-	progress_data := Progress_Data {
-		scanlines_done  = &scanlines_done,
-		total_scanlines = cam.image_height,
+		progress_thread := thread.create(track_scanlines)
+		progress_thread.data = &progress_data
+		thread.start(progress_thread)
+
+		thread.join(progress_thread)
+		thread.destroy(progress_thread)
 	}
-
-	progress_thread := thread.create(track_scanlines)
-	progress_thread.data = &progress_data
-	thread.start(progress_thread)
-
 
 	// Remove the threads so we don't do unsafe things with memory
 	for t in threads {
 		thread.join(t)
 		thread.destroy(t)
 	}
-
-	thread.join(progress_thread)
-	thread.destroy(progress_thread)
 }
 
 render_rows :: proc(t: ^thread.Thread) {
