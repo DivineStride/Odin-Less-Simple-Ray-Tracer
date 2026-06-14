@@ -1,4 +1,4 @@
-package gui
+package editor
 
 import rt "../raytracer/"
 import "core:fmt"
