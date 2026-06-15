@@ -1,7 +1,6 @@
 package editor
 
 import rt "../raytracer/"
-import "core:sync"
 import sdl "vendor:sdl3"
 
 Key_Pressed :: struct {
@@ -10,15 +9,8 @@ Key_Pressed :: struct {
 
 handle_keyboard_press :: proc(key_scancode: sdl.Scancode, ctx: ^rt.Render_Context) -> bool {
 	#partial switch key_scancode {
-	case .ESCAPE, .Q:
+	case .ESCAPE:
 		return false
-	case .W:
-		if rt.render_get_state(ctx) == .Idle {
-			sync.mutex_lock(&ctx.mutex)
-
-			sync.mutex_unlock(&ctx.mutex)
-			rt.render_set_state(ctx, .Requested)
-		}
 	}
 
 	return true
@@ -30,8 +22,8 @@ camera_movement :: proc(dt: f64) -> rt.Camera_Motion {
 		dt = dt,
 	}
 
-	speed :: 5.0
-	turn_speed :: 1.0
+	speed :: 10.0
+	turn_speed :: 5.0
 
 	if keys[sdl.Scancode.W] do move.move.z -= speed * dt
 	if keys[sdl.Scancode.S] do move.move.z += speed * dt
@@ -40,10 +32,10 @@ camera_movement :: proc(dt: f64) -> rt.Camera_Motion {
 	if keys[sdl.Scancode.E] do move.move.y -= speed * dt
 	if keys[sdl.Scancode.Q] do move.move.y += speed * dt
 
-	if keys[sdl.Scancode.LEFT] do move.rotate.y -= speed * dt
-	if keys[sdl.Scancode.RIGHT] do move.rotate.y += speed * dt
-	if keys[sdl.Scancode.UP] do move.rotate.x -= speed * dt
-	if keys[sdl.Scancode.DOWN] do move.rotate.x += speed * dt
+	if keys[sdl.Scancode.LEFT] do move.rotate.y -= turn_speed * dt
+	if keys[sdl.Scancode.RIGHT] do move.rotate.y += turn_speed * dt
+	if keys[sdl.Scancode.UP] do move.rotate.x -= turn_speed * dt
+	if keys[sdl.Scancode.DOWN] do move.rotate.x += turn_speed * dt
 
 	return move
 }

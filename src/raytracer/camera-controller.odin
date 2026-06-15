@@ -39,12 +39,17 @@ apply_camera_move :: proc(cam: ^Camera, mode: ^Camera_Mode, motion: Camera_Motio
 	}
 }
 
+camera_locked_mode_init :: proc(cam: ^Camera) -> Locked_Mode {
+	fwd := cam.forward
+	return Locked_Mode{yaw = math.atan2(fwd.x, -fwd.z), pitch = math.asin(fwd.y)}
+}
+
 apply_camera_move_locked :: proc(cam: ^Camera, m: ^Locked_Mode, motion: Camera_Motion) {
 	dt := motion.dt
 
 	m.ang_vel.x += motion.rotate.x * ANG_ACCEL * dt
-	m.ang_vel.y += motion.rotate.y * ANG_ACCEL * dt
-	m.ang_vel *= math.exp(-DAMPING * dt)
+	m.ang_vel.y -= motion.rotate.y * ANG_ACCEL * dt
+	m.ang_vel *= math.exp(-ANG_DAMPING * dt)
 
 	m.pitch = math.clamp(m.pitch + m.ang_vel.x * dt, -math.PI / 2 + 0.01, math.PI / 2 - 0.01)
 	m.yaw += m.ang_vel.y * dt
@@ -62,12 +67,13 @@ apply_camera_move_locked :: proc(cam: ^Camera, m: ^Locked_Mode, motion: Camera_M
 	cam.up = linalg.cross(cam.right, cam.forward)
 
 	flat_forward := linalg.normalize(Vec3{cam.forward.x, 0, cam.forward.z})
-	momentum :=
-		flat_forward * -motion.move.z + cam.right * motion.move.x + world_up * motion.move.y
+	inertia := flat_forward * -motion.move.z + cam.right * motion.move.x + world_up * motion.move.y
 
-	m.lin_vel += momentum * ACCELERATION * dt
+	m.lin_vel += inertia * ACCELERATION * dt
 	m.lin_vel *= math.exp(-DAMPING * dt)
 	cam.position += m.lin_vel * dt
+
+	camera_debug(cam, "after_move")
 }
 
 

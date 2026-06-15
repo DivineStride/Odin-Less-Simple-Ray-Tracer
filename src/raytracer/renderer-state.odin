@@ -50,6 +50,15 @@ accumulate_and_display :: proc(ctx: ^Render_Context) {
 	}
 }
 
+display_scratch :: proc(ctx: ^Render_Context) {
+	for i in 0 ..< len(ctx.scratch) {
+		ctx.pixel_buf[i] = color_to_xrgb(
+			ctx.scratch[i] * ctx.scratch_sample_scale,
+			ctx.cam.ev_scale,
+		)
+	}
+}
+
 accumulate_reset :: proc(ctx: ^Render_Context) {
 	for i in 0 ..< len(ctx.accum) do ctx.accum[i] = Color{0, 0, 0}
 	ctx.sample_count = 0
@@ -61,9 +70,9 @@ render_worker :: proc(t: ^thread.Thread) {
 	sync.mutex_lock(&ctx.mutex)
 	cam_snapshot := ctx.cam
 	frame_idx := ctx.sample_count
-	sync.mutex_unlock(&ctx.mutex)
-
 	ctx.scratch_sample_scale = cam_snapshot.pixel_samples_scale
+	camera_debug(&ctx.cam, "after_move")
+	sync.mutex_unlock(&ctx.mutex)
 
 	render_set_state(ctx, .Running)
 	// This is where we actually draw the scene that we got from the camera

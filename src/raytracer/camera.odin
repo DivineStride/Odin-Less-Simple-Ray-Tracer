@@ -1,5 +1,6 @@
 package raytracer
 
+import "core:fmt"
 import "core:math"
 import "core:math/linalg"
 
@@ -72,6 +73,18 @@ camera_default :: proc() -> Camera {
 	}
 }
 
+camera_debug :: proc(cam: ^Camera, tag: string) {
+	fmt.eprintfln(
+		"[%s] pos=%.2v fwd=%.3v right=%.3v up=%.3v |fwd|=%.4f",
+		tag,
+		cam.position,
+		cam.forward,
+		cam.right,
+		cam.up,
+		linalg.length(cam.forward),
+	)
+}
+
 camera_init :: proc(cam: ^Camera) {
 	cam.image_height = max(1, int(math.floor(f64(cam.image_width) / cam.aspect_ratio)))
 	cam.pixel_samples_scale = 1.0 / f64(cam.samples_per_pixel)
@@ -85,11 +98,6 @@ camera_init :: proc(cam: ^Camera) {
 	h := math.tan(theta / 2)
 	viewport_height := 2 * h * cam.focus_dist
 	viewport_width := viewport_height * (f64(cam.image_width) / f64(cam.image_height))
-
-	// Calculate the u, v, w unit basis vectors for the camera coordinate frame.
-	// cam.w = linalg.normalize(cam.lookfrom - cam.lookat)
-	// cam.u = linalg.normalize(linalg.cross(cam.vup, cam.w))
-	// cam.v = linalg.cross(cam.w, cam.u)
 
 	// Calculate the vectors across the horizontal and down the vertical viewport edges
 	viewport_u := viewport_width * cam.right // Vector across viewport horizontal

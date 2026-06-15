@@ -40,15 +40,16 @@ main :: proc() {
 	// We're only gettin this once, so if we want to update anything it will have to be moved
 	// If we want to adjust image width, we'll need to have this updated within the loop
 	// If want to move the camera, we will need to record the change in the loop
-	ctx.scene, ctx.cam = rt.world_checkered_spheres()
-
-	rt.camera_init(&ctx.cam)
+	ctx.scene, ctx.cam = rt.world_perlin_spheres()
 
 	ctx.cam.image_width = WINDOW_WIDTH
 	ctx.cam.aspect_ratio = f64(WINDOW_WIDTH) / f64(WINDOW_HEIGHT)
-	ctx.cam.samples_per_pixel = 10
-	ctx.cam.max_depth = 20
-	ctx.camera_mode = rt.Locked_Mode{}
+	ctx.cam.samples_per_pixel = 4
+	ctx.cam.max_depth = 5
+	ctx.camera_mode = rt.camera_locked_mode_init(&ctx.cam)
+	rt.camera_init(&ctx.cam)
+
+	rt.camera_debug(&ctx.cam, "snapshot")
 
 	rt.render_set_state(&ctx, .Requested)
 
@@ -76,7 +77,9 @@ main :: proc() {
 			}
 		}
 
-		if camera_has_movement(motion) {
+		moving := camera_has_movement(motion)
+
+		if moving {
 			rt.apply_camera_move(&ctx.cam, &ctx.camera_mode, motion)
 			rt.camera_init(&ctx.cam)
 			rt.accumulate_reset(&ctx)
@@ -97,13 +100,24 @@ main :: proc() {
 		}
 
 		if rt.render_get_state(&ctx) == .Done {
-			rt.accumulate_and_display(&ctx)
+			if moving {
+				rt.display_scratch(&ctx)
+			} else {
+				rt.accumulate_and_display(&ctx)
+			}
+
 			if ctx.sample_count < MAX_SAMPLES {
 				rt.render_set_state(&ctx, .Requested)
 			} else {
 				rt.render_set_state(&ctx, .Idle)
 			}
-			sdl.SetWindowTitle(app.window, "Raytracer")
+
+			if moving || ctx.sample_count < MAX_SAMPLES {
+				rt.render_set_state(&ctx, .Requested)
+			} else {
+				rt.render_set_state(&ctx, .Idle)
+				sdl.SetWindowTitle(app.window, "Raytracer")
+			}
 		}
 
 		// We're going to need a way to accumulate samples for this texture as well
