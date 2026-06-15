@@ -2,7 +2,6 @@ package raytracer
 
 import "core:fmt"
 import "core:math/rand"
-import "core:os"
 import "core:sync"
 import "core:thread"
 import "core:time"
@@ -48,7 +47,7 @@ build_render_threads :: proc(
 			next_row       = &next_row,
 			scanlines_done = &scanlines_done,
 			id             = i,
-			seed           = (u64(i) * rand.uint64() + rand.uint64()) * u64(seed_multiplier),
+			seed           = (u64(i) * rand.uint64() + rand.uint64()) * u64(seed_multiplier + 1),
 		}
 		threads[i] = thread.create(render_rows)
 		threads[i].data = &thread_data[i]

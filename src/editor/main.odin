@@ -37,11 +37,10 @@ main :: proc() {
 	defer delete(ctx.accum)
 	defer delete(ctx.scratch)
 
-
 	// We're only gettin this once, so if we want to update anything it will have to be moved
 	// If we want to adjust image width, we'll need to have this updated within the loop
 	// If want to move the camera, we will need to record the change in the loop
-	ctx.scene, ctx.cam = rt.world_cornell_box()
+	ctx.scene, ctx.cam = rt.world_checkered_spheres()
 
 	rt.camera_init(&ctx.cam)
 
@@ -49,16 +48,22 @@ main :: proc() {
 	ctx.cam.aspect_ratio = f64(WINDOW_WIDTH) / f64(WINDOW_HEIGHT)
 	ctx.cam.samples_per_pixel = 10
 	ctx.cam.max_depth = 20
+	ctx.camera_mode = rt.Locked_Mode{}
 
 	rt.render_set_state(&ctx, .Requested)
-
 
 	render_thread: ^thread.Thread = nil
 
 	defer rt.scene_destroy(&ctx.scene)
 
+	last_time := sdl.GetTicks()
 	event: sdl.Event
 	main_loop: for {
+		now := sdl.GetTicks()
+		dt := f64(now - last_time) / 1000.0
+		last_time = now
+
+		motion := camera_movement(dt)
 
 		for sdl.PollEvent(&event) {
 			#partial switch event.type {
@@ -69,6 +74,13 @@ main :: proc() {
 					break main_loop
 				}
 			}
+		}
+
+		if camera_has_movement(motion) {
+			rt.apply_camera_move(&ctx.cam, &ctx.camera_mode, motion)
+			rt.camera_init(&ctx.cam)
+			rt.accumulate_reset(&ctx)
+			rt.render_set_state(&ctx, .Requested)
 		}
 
 		if rt.render_get_state(&ctx) == .Requested {

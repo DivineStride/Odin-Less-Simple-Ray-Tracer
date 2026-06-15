@@ -6,8 +6,7 @@ import "core:mem"
 world_many_spheres :: proc(bounce: bool = false) -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {13, 2, 3}
-	cam.lookat = {0, 0, 0}
+	camera_look_at(&cam, {13, 2, 3}, {0, 0, 0})
 	cam.focal_length_mm = 85
 	cam.fstop = 8.0
 
@@ -91,8 +90,7 @@ world_many_spheres :: proc(bounce: bool = false) -> (scene: Scene, cam: Camera) 
 world_checkered_spheres :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {13, 2, 3}
-	cam.lookat = {0, 0, 0}
+	camera_look_at(&cam, {13, 2, 3}, {0, 0, 0})
 	cam.focal_length_mm = 85
 	cam.fstop = 20
 
@@ -129,8 +127,7 @@ world_checkered_spheres :: proc() -> (scene: Scene, cam: Camera) {
 world_earth :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {0, 0, 12}
-	cam.lookat = {0, 0, 0}
+	camera_look_at(&cam, {0, 0, 12}, {0, 0, 0})
 	cam.focal_length_mm = 85
 	cam.fstop = 20
 
@@ -170,8 +167,7 @@ world_earth :: proc() -> (scene: Scene, cam: Camera) {
 world_perlin_spheres :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {13, 2, 3}
-	cam.lookat = {0, 0, 0}
+	camera_look_at(&cam, {13, 2, 3}, {0, 0, 0})
 	cam.focal_length_mm = 120
 	cam.fstop = 20
 
@@ -206,9 +202,8 @@ world_perlin_spheres :: proc() -> (scene: Scene, cam: Camera) {
 world_quads :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {0, 0, 9}
+	camera_look_at(&cam, {0, 0, 9}, {0, 0, 0})
 	cam.aspect_ratio = 1.0
-	cam.lookat = {0, 0, 0}
 	cam.focal_length_mm = 20
 	cam.fstop = 20
 
@@ -262,8 +257,7 @@ world_quads :: proc() -> (scene: Scene, cam: Camera) {
 world_simple_light :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {26, 3, 6}
-	cam.lookat = {0, 2, 0}
+	camera_look_at(&cam, {26, 3, 6}, {0, 2, 0})
 	cam.focal_length_mm = 120
 	cam.fstop = 20
 	cam.focus_dist = 26
@@ -307,8 +301,7 @@ world_simple_light :: proc() -> (scene: Scene, cam: Camera) {
 world_cornell_box :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {278, 278, -800}
-	cam.lookat = {278, 278, 0}
+	camera_look_at(&cam, {278, 278, -800}, {278, 278, 0})
 	cam.aspect_ratio = 1.0
 	cam.focal_length_mm = 50
 	cam.fstop = 20
@@ -382,8 +375,7 @@ world_cornell_box :: proc() -> (scene: Scene, cam: Camera) {
 world_cornell_smoke :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {278, 278, -800}
-	cam.lookat = {278, 278, 0}
+	camera_look_at(&cam, {278, 278, -800}, {278, 278, 0})
 	cam.aspect_ratio = 1.0
 	cam.focal_length_mm = 50
 	cam.fstop = 20
@@ -465,8 +457,7 @@ world_cornell_smoke :: proc() -> (scene: Scene, cam: Camera) {
 final_scene :: proc() -> (scene: Scene, cam: Camera) {
 	// Setup Camera
 	cam = camera_default()
-	cam.lookfrom = {470, 270, -600}
-	cam.lookat = {278, 278, 0}
+	camera_look_at(&cam, {470, 270, -600}, {278, 278, 0})
 	cam.aspect_ratio = 1.0
 	cam.focal_length_mm = 50
 	cam.fstop = 20

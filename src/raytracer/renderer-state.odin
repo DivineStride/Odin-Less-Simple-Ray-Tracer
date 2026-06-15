@@ -12,14 +12,16 @@ Render_State :: enum u32 {
 }
 
 Render_Context :: struct {
-	state:        u32,
-	cam:          Camera,
-	scene:        Scene,
-	pixel_buf:    []u32,
-	accum:        []Color,
-	scratch:      []Color,
-	sample_count: int,
-	mutex:        sync.Mutex,
+	state:                u32,
+	cam:                  Camera,
+	camera_mode:          Camera_Mode,
+	scene:                Scene,
+	pixel_buf:            []u32,
+	accum:                []Color,
+	scratch:              []Color,
+	sample_count:         int,
+	scratch_sample_scale: f64,
+	mutex:                sync.Mutex,
 }
 
 render_get_state :: proc(ctx: ^Render_Context) -> Render_State {
@@ -42,7 +44,7 @@ accumulate_and_display :: proc(ctx: ^Render_Context) {
 		ctx.cam.ev_scale,
 	)
 	for i in 0 ..< len(ctx.accum) {
-		ctx.accum[i] += ctx.scratch[i] * ctx.cam.pixel_samples_scale
+		ctx.accum[i] += ctx.scratch[i] * ctx.scratch_sample_scale
 		avg := ctx.accum[i] * inv
 		ctx.pixel_buf[i] = color_to_xrgb(avg, ctx.cam.ev_scale)
 	}
@@ -60,6 +62,8 @@ render_worker :: proc(t: ^thread.Thread) {
 	cam_snapshot := ctx.cam
 	frame_idx := ctx.sample_count
 	sync.mutex_unlock(&ctx.mutex)
+
+	ctx.scratch_sample_scale = cam_snapshot.pixel_samples_scale
 
 	render_set_state(ctx, .Running)
 	// This is where we actually draw the scene that we got from the camera

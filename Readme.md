@@ -8,10 +8,11 @@ The core of this project was built by following the book series by Perter Shirle
 
 ## Unique things about the current state
 
-- Somewhat accurate camera aperture simulation (Though I will change this in the future)
-- There's some form of BVH working here, it's not great, but you can render an image in a few seconds.
+- There's a fairly accurate Bokeh effect implemented to simulate the camera aperture as either round, polygonal, or pointed (star shaped).
+- A lot of camera settings such as fov, defocus, and ev_scale are set by digital camera settings rather than directly since I'm more familiar with those.
+  - Accuracy for these settings needs to be tested, and will be done later.
 - There's multithreading, but no single threading (the option will be added later)
-- There's a basic implementation Oren Nayar and Burley (Disney) matte texture solver available (surprisingly little overhead for now). That said, metal still uses a basic Lambertian solver since I was just going through the book and wasn't building this to really integrate it into anything.
+- There's a basic implementation Oren Nayar and Burley (Disney) diffuse texture solver used (surprisingly little overhead for now). That said, metal still uses a basic Lambertian solver since I was just going through the book and wasn't building this to really integrate it into anything.
 
 ## Goals with this project
 

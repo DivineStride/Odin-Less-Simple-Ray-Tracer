@@ -9,9 +9,10 @@ Camera :: struct {
 	image_width:         int,
 	samples_per_pixel:   int,
 	max_depth:           int,
-	lookfrom:            Point3,
-	lookat:              Point3,
-	vup:                 Vec3,
+	position:            Point3,
+	forward:             Point3,
+	up:                  Vec3,
+	right:               Vec3,
 	focus_dist:          f64,
 
 	// Physical camera details
@@ -32,13 +33,17 @@ Camera :: struct {
 	pixel00_loc:         Point3,
 	pixel_delta_u:       Vec3,
 	pixel_delta_v:       Vec3,
-	u, v, w:             Vec3,
 	defocus_disk_u:      Vec3,
 	defocus_disk_v:      Vec3,
 	background:          Color,
 }
 
 camera_default :: proc() -> Camera {
+	position := Point3{0, 0, 1}
+	forward := linalg.normalize(position - Point3{0, 0, -1})
+	right := linalg.normalize(linalg.cross(forward, Vec3{0, 1, 0}))
+	up := linalg.cross(right, forward)
+
 	return Camera {
 		// Sensor
 		focal_length_mm = 50,
@@ -47,9 +52,10 @@ camera_default :: proc() -> Camera {
 		exposure = 1.0 / 60,
 
 		//Framing
-		lookfrom = {0, 0, 1},
-		lookat = {0, 0, -1},
-		vup = {0, 1, 0},
+		position = position,
+		forward = forward,
+		right = right,
+		up = up,
 		focus_dist = 10.0,
 		aperture = Aperture_Circle{},
 		lens = Lens {
@@ -69,7 +75,7 @@ camera_default :: proc() -> Camera {
 camera_init :: proc(cam: ^Camera) {
 	cam.image_height = max(1, int(math.floor(f64(cam.image_width) / cam.aspect_ratio)))
 	cam.pixel_samples_scale = 1.0 / f64(cam.samples_per_pixel)
-	cam.camera_center = cam.lookfrom
+	cam.camera_center = cam.position
 	cam.vfov = vfov_from_focal_length(cam.focal_length_mm)
 	cam.defocus_angle = aperture_from_fstop(cam.focal_length_mm, cam.fstop, cam.focus_dist)
 	cam.ev_scale = (f64(cam.iso) * cam.exposure) / (100.0 * 0.016)
@@ -81,13 +87,13 @@ camera_init :: proc(cam: ^Camera) {
 	viewport_width := viewport_height * (f64(cam.image_width) / f64(cam.image_height))
 
 	// Calculate the u, v, w unit basis vectors for the camera coordinate frame.
-	cam.w = linalg.normalize(cam.lookfrom - cam.lookat)
-	cam.u = linalg.normalize(linalg.cross(cam.vup, cam.w))
-	cam.v = linalg.cross(cam.w, cam.u)
+	// cam.w = linalg.normalize(cam.lookfrom - cam.lookat)
+	// cam.u = linalg.normalize(linalg.cross(cam.vup, cam.w))
+	// cam.v = linalg.cross(cam.w, cam.u)
 
 	// Calculate the vectors across the horizontal and down the vertical viewport edges
-	viewport_u := viewport_width * cam.u // Vector across viewport horizontal
-	viewport_v := viewport_height * -cam.v // Vector down viewport vertical
+	viewport_u := viewport_width * cam.right // Vector across viewport horizontal
+	viewport_v := viewport_height * -cam.up // Vector down viewport vertical
 
 	// Calculate the horizontal and vertical delta vectors from pixel to pixel
 	cam.pixel_delta_u = viewport_u / f64(cam.image_width)
@@ -95,14 +101,13 @@ camera_init :: proc(cam: ^Camera) {
 
 	// Calculate the location of the upper left pixel
 	viewport_upper_left :=
-		cam.camera_center - (cam.focus_dist * cam.w) - viewport_u / 2.0 - viewport_v / 2.0
+		cam.camera_center + (cam.focus_dist * cam.forward) - viewport_u / 2 - viewport_v / 2
 	cam.pixel00_loc = viewport_upper_left + 0.5 * (cam.pixel_delta_u + cam.pixel_delta_v)
 
 	defocus_radius := cam.focus_dist * linalg.tan(degrees_to_radians(cam.defocus_angle))
-	cam.defocus_disk_u = cam.u * defocus_radius
-	cam.defocus_disk_v = cam.v * defocus_radius
+	cam.defocus_disk_u = cam.right * defocus_radius
+	cam.defocus_disk_v = cam.up * defocus_radius
 }
-
 
 sense_color :: proc(r: Ray, depth: int, bg: Color, world: []Hittable) -> Color {
 	accumulated_color := Color{0, 0, 0}

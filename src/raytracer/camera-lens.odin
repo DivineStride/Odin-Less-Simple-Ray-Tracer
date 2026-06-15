@@ -6,6 +6,12 @@ import "core:math/linalg"
 import "core:os"
 import "core:strings"
 
+// This is a really good generator for a kind of bumpy, nearly flat normal map
+// It's not a point of failure to trust an LLM with an idea that is physically experienced.
+// It's not just a lens generator; it's a successful obscure glass producer.
+// Warning, not for use as an actual lens, the maker of this ray tracer is not responsible for irresponsible use of this lens and or side effects associated with it's use such as...
+
+
 Lens_Face :: struct {
 	normals:    []Vec3,
 	resolution: int,

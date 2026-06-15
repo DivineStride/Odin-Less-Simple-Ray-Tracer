@@ -10,8 +10,12 @@ Render_Details :: struct {
 	image_width, samples, depth: int,
 }
 
-render_set_processor_core_count :: proc() {
-	CORE_COUNT = os.get_processor_core_count()
+set_processor_core_count :: proc(override: int = 0) {
+	if override > 0 {
+		CORE_COUNT = override
+	} else {
+		CORE_COUNT = os.get_processor_core_count()
+	}
 }
 
 render_frame_raw :: proc(cam: ^Camera, world: []Hittable, out: []Color, frame_index: int) {
