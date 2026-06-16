@@ -73,7 +73,7 @@ apply_camera_move_locked :: proc(cam: ^Camera, m: ^Locked_Mode, motion: Camera_M
 	m.lin_vel *= math.exp(-DAMPING * dt)
 	cam.position += m.lin_vel * dt
 
-	camera_debug(cam, "after_move")
+	camera_debug(cam, "Locked_Mode")
 }
 
 
@@ -107,6 +107,8 @@ apply_camera_move_flight :: proc(cam: ^Camera, m: ^Flight_Mode, motion: Camera_M
 	}
 
 	camera_reorthonormalize(cam)
+
+	camera_debug(cam, "Flight_Mode")
 }
 
 camera_reorthonormalize :: proc(cam: ^Camera) {

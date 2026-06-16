@@ -1,6 +1,5 @@
 package raytracer
 
-import "core:fmt"
 import "core:sync"
 import "core:thread"
 
@@ -35,14 +34,14 @@ render_set_state :: proc(ctx: ^Render_Context, s: Render_State) {
 accumulate_and_display :: proc(ctx: ^Render_Context) {
 	ctx.sample_count += 1
 	inv := 1.0 / f64(ctx.sample_count)
-	fmt.eprintln(
-		"accum: sample",
-		ctx.sample_count,
-		"scratch[0]:",
-		ctx.scratch[0],
-		"ev_scale:",
-		ctx.cam.ev_scale,
-	)
+	// fmt.eprintln(
+	// 	"accum: sample",
+	// 	ctx.sample_count,
+	// 	"scratch[0]:",
+	// 	ctx.scratch[0],
+	// 	"ev_scale:",
+	// 	ctx.cam.ev_scale,
+	// )
 	for i in 0 ..< len(ctx.accum) {
 		ctx.accum[i] += ctx.scratch[i] * ctx.scratch_sample_scale
 		avg := ctx.accum[i] * inv
@@ -71,7 +70,6 @@ render_worker :: proc(t: ^thread.Thread) {
 	cam_snapshot := ctx.cam
 	frame_idx := ctx.sample_count
 	ctx.scratch_sample_scale = cam_snapshot.pixel_samples_scale
-	camera_debug(&ctx.cam, "after_move")
 	sync.mutex_unlock(&ctx.mutex)
 
 	render_set_state(ctx, .Running)

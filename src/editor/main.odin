@@ -46,10 +46,8 @@ main :: proc() {
 	ctx.cam.aspect_ratio = f64(WINDOW_WIDTH) / f64(WINDOW_HEIGHT)
 	ctx.cam.samples_per_pixel = 4
 	ctx.cam.max_depth = 5
-	ctx.camera_mode = rt.camera_locked_mode_init(&ctx.cam)
+	ctx.camera_mode = rt.Flight_Mode{}
 	rt.camera_init(&ctx.cam)
-
-	rt.camera_debug(&ctx.cam, "snapshot")
 
 	rt.render_set_state(&ctx, .Requested)
 
@@ -81,6 +79,8 @@ main :: proc() {
 
 		if moving {
 			rt.apply_camera_move(&ctx.cam, &ctx.camera_mode, motion)
+			rt.camera_init(&ctx.cam)
+			rt.autofocus(&ctx.cam, ctx.scene.bvh_world[:])
 			rt.camera_init(&ctx.cam)
 			rt.accumulate_reset(&ctx)
 			rt.render_set_state(&ctx, .Requested)

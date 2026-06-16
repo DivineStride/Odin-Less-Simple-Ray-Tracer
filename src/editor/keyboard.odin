@@ -23,7 +23,7 @@ camera_movement :: proc(dt: f64) -> rt.Camera_Motion {
 	}
 
 	speed :: 10.0
-	turn_speed :: 5.0
+	turn_speed :: 1.0
 
 	if keys[sdl.Scancode.W] do move.move.z -= speed * dt
 	if keys[sdl.Scancode.S] do move.move.z += speed * dt
@@ -32,10 +32,12 @@ camera_movement :: proc(dt: f64) -> rt.Camera_Motion {
 	if keys[sdl.Scancode.E] do move.move.y -= speed * dt
 	if keys[sdl.Scancode.Q] do move.move.y += speed * dt
 
-	if keys[sdl.Scancode.LEFT] do move.rotate.y -= turn_speed * dt
-	if keys[sdl.Scancode.RIGHT] do move.rotate.y += turn_speed * dt
-	if keys[sdl.Scancode.UP] do move.rotate.x -= turn_speed * dt
-	if keys[sdl.Scancode.DOWN] do move.rotate.x += turn_speed * dt
+	if keys[sdl.Scancode.LEFT] do move.rotate.y -= turn_speed * dt // Yaw Left
+	if keys[sdl.Scancode.RIGHT] do move.rotate.y += turn_speed * dt // Yaw Right
+	if keys[sdl.Scancode.UP] do move.rotate.x += turn_speed * dt // Pitch up
+	if keys[sdl.Scancode.DOWN] do move.rotate.x -= turn_speed * dt // Pitch down
+	if keys[sdl.Scancode.COMMA] do move.rotate.z += turn_speed * dt // Roll right
+	if keys[sdl.Scancode.PERIOD] do move.rotate.z -= turn_speed * dt // Roll left
 
 	return move
 }

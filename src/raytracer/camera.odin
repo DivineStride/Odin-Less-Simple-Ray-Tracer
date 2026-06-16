@@ -3,6 +3,7 @@ package raytracer
 import "core:fmt"
 import "core:math"
 import "core:math/linalg"
+import "core:slice"
 
 Camera :: struct {
 	// Set these first before calling camera_render
@@ -74,8 +75,8 @@ camera_default :: proc() -> Camera {
 }
 
 camera_debug :: proc(cam: ^Camera, tag: string) {
-	fmt.eprintfln(
-		"[%s] pos=%.2v fwd=%.3v right=%.3v up=%.3v |fwd|=%.4f",
+	fmt.eprintf(
+		"\r[%s] pos=%.2v fwd=%.3v right=%.3v up=%.3v |fwd|=%.4f",
 		tag,
 		cam.position,
 		cam.forward,
@@ -150,4 +151,68 @@ sense_color :: proc(r: Ray, depth: int, bg: Color, world: []Hittable) -> Color {
 	}
 
 	return accumulated_color
+}
+
+autofocus :: proc(cam: ^Camera, world: []Hittable) {
+	AF_COLS :: 5
+	AF_ROWS :: 5
+	AF_MARGIN :: 0.2
+	BAND_WIDTH :: 2.0
+
+	distances := make([dynamic]f64, 0, AF_COLS * AF_ROWS)
+	defer delete(distances)
+
+	// Creat autofocus grid and shoot rays distances to first hit
+	for row in 0 ..< AF_ROWS {
+		for col in 0 ..< AF_COLS {
+			u := 0.5 + AF_MARGIN * (f64(col) / f64(AF_COLS - 1) * 2 - 1)
+			v := 0.5 + AF_MARGIN * (f64(row) / f64(AF_ROWS - 1) * 2 - 1)
+
+			i := u * f64(cam.image_width - 1)
+			j := v * f64(cam.image_height - 1)
+			pixel_sample := cam.pixel00_loc + (i * cam.pixel_delta_u) + (j * cam.pixel_delta_v)
+
+			ray_dir := pixel_sample - cam.camera_center
+			r := new_ray(cam.camera_center, ray_dir)
+
+			if rec, ok := hit_world(world, r, Interval{0.001, math.INF_F64}); ok {
+				append(&distances, rec.t * linalg.length(ray_dir))
+			}
+		}
+	}
+
+	if len(distances) == 0 do return
+
+	// Sort rays in order
+	// then find the mode by using the distance band with most hits
+
+	slice.sort(distances[:])
+
+	best_start := 0
+	best_count := 0
+	band_start := 0
+
+	for i in 1 ..< len(distances) {
+		if distances[i] - distances[band_start] > BAND_WIDTH {
+			count := i - band_start
+			if count > best_count {
+				best_count = count
+				best_start = band_start
+			}
+			band_start = i
+		}
+	}
+
+	count := len(distances) - band_start
+
+	if count > best_count {
+		best_count = count
+		best_start = band_start
+	}
+
+	sum := 0.0
+	for i in best_start ..< best_start + best_count {
+		sum += distances[i]
+	}
+	cam.focus_dist = sum / f64(best_count)
 }
