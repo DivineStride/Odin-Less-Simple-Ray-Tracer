@@ -7,6 +7,7 @@ Scene :: struct {
 	world:     [dynamic]Hittable,
 	materials: [dynamic]^Material,
 	hittables: [dynamic]^Hittable,
+	lights:    [dynamic]^Hittable,
 	images:    [dynamic]^Image,
 	bvh:       Hittable,
 	bvh_world: [1]Hittable,
@@ -20,6 +21,7 @@ scene_init :: proc(s: ^Scene, arena_size: int = 32 * mem.Megabyte) {
 	s.world = make([dynamic]Hittable, arena_alloc)
 	s.materials = make([dynamic]^Material, arena_alloc)
 	s.hittables = make([dynamic]^Hittable, arena_alloc)
+	s.lights = make([dynamic]^Hittable, arena_alloc)
 	s.images = make([dynamic]^Image, arena_alloc)
 }
 

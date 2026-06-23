@@ -4,7 +4,8 @@ import "core:math"
 import "core:math/linalg"
 
 Lambertian :: struct {
-	tex: Texture,
+	tex:       Texture,
+	roughness: f64,
 }
 
 Oren_Nayar :: struct {
@@ -22,26 +23,27 @@ make_lambertian :: proc {
 	make_lambertian_texture,
 }
 
-make_lambertian_color :: proc(color: Color) -> Material {
-	return Material(Lambertian{solid_color(color)})
+make_lambertian_color :: proc(color: Color, roughness: f64 = 1) -> Material {
+	return Material(Lambertian{solid_color(color), roughness})
 }
 
-make_lambertian_texture :: proc(tex: Texture) -> Material {
-	return Material(Lambertian{tex})
+make_lambertian_texture :: proc(tex: Texture, roughness: f64 = 1) -> Material {
+	return Material(Lambertian{tex, roughness})
 }
 
-scatter_lambertian :: proc(mat: Lambertian, ray_in: Ray, rec: Hit_Record) -> (Color, Ray, bool) {
-	scatter_direction := rec.normal + random_unit_vector()
+scatter_lambertian :: proc(
+	mat: Lambertian,
+	ray_in: Ray,
+	rec: Hit_Record,
+) -> (
+	srec: Scatter_Record,
+	hit: bool,
+) {
+	srec.attenuation = texture_value(mat.tex, rec.u, rec.v, rec.p)
+	srec.pdf_ptr = cosine_pdf(rec.normal)
+	srec.skip_pdf = false
 
-	// Catch degenerate scatter direction
-	if near_zero(scatter_direction) {
-		scatter_direction = rec.normal
-	}
-
-	attenuation := texture_value(mat.tex, rec.u, rec.v, rec.p)
-	scattered := new_ray(rec.p, scatter_direction, ray_in.tm)
-
-	return attenuation, scattered, true
+	return srec, true
 }
 
 make_oren_nayar :: proc {
@@ -58,9 +60,17 @@ make_oren_nayar_texture :: proc(tex: Texture, roughness: f64) -> Material {
 }
 
 // Extra Experimentations
-scatter_oren_nayar :: proc(mat: Oren_Nayar, r_in: Ray, rec: Hit_Record) -> (Color, Ray, bool) {
+scatter_oren_nayar :: proc(
+	mat: Oren_Nayar,
+	r_in: Ray,
+	rec: Hit_Record,
+) -> (
+	srec: Scatter_Record,
+	hit: bool,
+) {
 	// Use Lambertian default scatter direction
-	scatter_dir := rec.normal + random_unit_vector()
+	uvw := onb(rec.normal)
+	scatter_dir := onb_transform(&uvw, random_cosine_direction())
 	if near_zero(scatter_dir) {
 		scatter_dir = rec.normal
 	}
@@ -87,10 +97,12 @@ scatter_oren_nayar :: proc(mat: Oren_Nayar, r_in: Ray, rec: Hit_Record) -> (Colo
 	beta := math.acos(max(n_dot_l, n_dot_v))
 
 	factor := A + B * cos_phi_diff * math.sin(alpha) * math.tan(beta)
-	attenuation := texture_value(mat.tex, rec.u, rec.v, rec.p) * factor
+	srec.attenuation = texture_value(mat.tex, rec.u, rec.v, rec.p) * factor
 	scattered := new_ray(rec.p, scatter_dir, r_in.tm)
+	srec.pdf_ptr = cosine_pdf(rec.normal)
+	srec.skip_pdf = false
 
-	return attenuation, scattered, true
+	return srec, true
 }
 
 make_burley :: proc {
@@ -106,8 +118,16 @@ make_burley_texture :: proc(tex: Texture, roughness: f64) -> Material {
 	return Material(Burley{tex, roughness})
 }
 
-scatter_burley :: proc(mat: Burley, r_in: Ray, rec: Hit_Record) -> (Color, Ray, bool) {
-	scatter_dir := rec.normal + random_unit_vector()
+scatter_burley :: proc(
+	mat: Burley,
+	r_in: Ray,
+	rec: Hit_Record,
+) -> (
+	srec: Scatter_Record,
+	hit: bool,
+) {
+	uvw := onb(rec.normal)
+	scatter_dir := onb_transform(&uvw, random_cosine_direction())
 	if near_zero(scatter_dir) {
 		scatter_dir = rec.normal
 	}
@@ -129,8 +149,15 @@ scatter_burley :: proc(mat: Burley, r_in: Ray, rec: Hit_Record) -> (Color, Ray, 
 
 	fd := schlick(n_dot_l, fd90) * schlick(n_dot_v, fd90)
 
-	attenuation: Color = texture_value(mat.tex, rec.u, rec.v, rec.p) * fd
-	scattered: Ray = new_ray(rec.p, scatter_dir, r_in.tm)
+	srec.attenuation = texture_value(mat.tex, rec.u, rec.v, rec.p) * fd
+	scattered := new_ray(rec.p, scatter_dir, r_in.tm)
+	srec.pdf_ptr = cosine_pdf(rec.normal)
+	srec.skip_pdf = false
 
-	return attenuation, scattered, true
+	return srec, true
+}
+
+diffuse_pdf :: proc(material: Material, r_in: Ray, rec: ^Hit_Record, scattered: Ray) -> f64 {
+	cos_theta := linalg.dot(rec.normal, linalg.vector_normalize(scattered.dir))
+	return cos_theta < 0 ? 0 : cos_theta / math.PI
 }

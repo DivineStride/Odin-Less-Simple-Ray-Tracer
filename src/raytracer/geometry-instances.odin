@@ -66,7 +66,7 @@ hit_instance :: proc(inst: Instance, r: Ray, ray_t: Interval) -> (Hit_Record, bo
 	// Tranform hit point and normal back to world space
 	p := linalg.mul(inst.transform, Vec4{rec.p.x, rec.p.y, rec.p.z, 1})
 	n := linalg.mul(
-		linalg.matrix4_inverse_transpose(inst.inv_transform),
+		linalg.matrix4_inverse_transpose(inst.transform),
 		Vec4{rec.normal.x, rec.normal.y, rec.normal.z, 0},
 	)
 

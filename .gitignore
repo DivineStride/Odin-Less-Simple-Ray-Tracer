@@ -349,4 +349,3 @@ arch/*/include/generated/
 
 # Removing PPM images to save space
 *.ppm
-images/planets

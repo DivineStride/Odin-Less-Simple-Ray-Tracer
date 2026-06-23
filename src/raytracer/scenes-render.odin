@@ -47,7 +47,7 @@ render_world :: proc(
 	cam.max_depth = render_overwrite.depth
 
 
-	render_to_ppm(&cam, scene.bvh_world[:])
+	render_to_ppm(&cam, scene.bvh_world[:], scene.lights[:])
 
 	defer scene_destroy(&scene)
 }

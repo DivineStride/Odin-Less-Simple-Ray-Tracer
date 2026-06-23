@@ -10,15 +10,14 @@ Material :: union {
 	Isotropic,
 }
 
-scatter :: proc(
-	mat: ^Material,
-	r_in: Ray,
-	rec: Hit_Record,
-) -> (
-	attenuation: Color,
-	scattered: Ray,
-	ok: bool,
-) {
+Scatter_Record :: struct {
+	attenuation:  Color,
+	pdf_ptr:      Pdf,
+	skip_pdf:     bool,
+	skip_pdf_ray: Ray,
+}
+
+scatter :: proc(mat: ^Material, r_in: Ray, rec: Hit_Record) -> (srec: Scatter_Record, ok: bool) {
 	switch m in mat {
 	case Lambertian:
 		return scatter_lambertian(m, r_in, rec)
@@ -36,5 +35,18 @@ scatter :: proc(
 		return scatter_isotropic(m, r_in, rec)
 	}
 
-	return {}, {}, false
+	return {}, false
+}
+
+scatter_pdf :: proc(material: ^Material, r_in: Ray, rec: ^Hit_Record, scattered: Ray) -> f64 {
+	switch m in material {
+	case Oren_Nayar, Lambertian, Burley:
+		return diffuse_pdf(m, r_in, rec, scattered)
+	case Isotropic:
+		return isotropic_pdf(m, r_in, rec, scattered)
+	case Dielectric, Metal, Emissive:
+		return 0
+	}
+
+	return 0
 }

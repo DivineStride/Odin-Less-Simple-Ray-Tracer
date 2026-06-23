@@ -28,6 +28,6 @@ The core of this project was built by following the book series by Perter Shirle
   - I'd also like to simulate zoom using the lenses
   - I'd also like to add wavelength tracking so that we can also simulate IR and UV just for fun.
 - [x] Refactor directory structure to be less of a headache (Odin likes things flat and specific, but that's counter too my organizational tendencies)
-- [ ] Optimize path tracer to be faster
+- [x] Optimize path tracer to be faster
 - [ ] Build more robust materials system
-- [ ] Add other primitives
+- [x] Add other primitives

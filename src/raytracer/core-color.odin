@@ -51,3 +51,11 @@ write_color :: proc(pixel_color: Color, ev_scale: f64) {
 
 	fmt.printfln("%d %d %d", rbyte, gbyte, bbyte)
 }
+
+sanitize_color :: proc(c: Color) -> Color {
+	return Color {
+		math.is_nan(c.x) ? 0 : c.x,
+		math.is_nan(c.y) ? 0 : c.y,
+		math.is_nan(c.z) ? 0 : c.z,
+	}
+}

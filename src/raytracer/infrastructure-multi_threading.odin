@@ -1,14 +1,12 @@
 package raytracer
 
-import "core:fmt"
 import "core:math/rand"
-import "core:sync"
 import "core:thread"
-import "core:time"
 
 Thread_Data :: struct {
 	cam:            ^Camera,
 	world:          []Hittable,
+	lights:         []^Hittable,
 	pixels:         []Color,
 	next_row:       ^i64,
 	scanlines_done: ^i64,
@@ -24,6 +22,7 @@ Progress_Data :: struct {
 build_render_threads :: proc(
 	cam: ^Camera,
 	world: []Hittable,
+	lights: []^Hittable,
 	pixels: []Color,
 	show_progress := true,
 	seed_multiplier := 1,
@@ -44,6 +43,7 @@ build_render_threads :: proc(
 			cam            = cam,
 			world          = world,
 			pixels         = pixels,
+			lights         = lights,
 			next_row       = &next_row,
 			scanlines_done = &scanlines_done,
 			id             = i,
@@ -73,43 +73,4 @@ build_render_threads :: proc(
 		thread.join(t)
 		thread.destroy(t)
 	}
-}
-
-render_rows :: proc(t: ^thread.Thread) {
-	data := (^Thread_Data)(t.data)
-
-	rng_state := rand.create(data.seed)
-
-	context.random_generator = rand.default_random_generator(&rng_state)
-
-	for {
-		j := int(sync.atomic_add(data.next_row, 1)) - 1
-		if j >= data.cam.image_height do break
-
-		for i := 0; i < data.cam.image_width; i += 1 {
-			pixel_color := Color{0, 0, 0}
-			for s := 0; s < data.cam.samples_per_pixel; s += 1 {
-				r := get_ray(data.cam, i, j)
-				pixel_color += sense_color(r, data.cam.max_depth, data.cam.background, data.world)
-			}
-
-			data.pixels[j * data.cam.image_width + i] = pixel_color
-		}
-
-		sync.atomic_add(data.scanlines_done, 1)
-	}
-}
-
-track_scanlines :: proc(t: ^thread.Thread) {
-	data := (^Progress_Data)(t.data)
-
-	for {
-		done := sync.atomic_load(data.scanlines_done)
-		fmt.eprintf("\rScanlines remaining: %v    ", data.total_scanlines - int(done))
-
-		if int(done) >= data.total_scanlines do break
-		time.sleep(100 * time.Millisecond)
-	}
-
-	fmt.eprintf("\rDone.                   \n")
 }

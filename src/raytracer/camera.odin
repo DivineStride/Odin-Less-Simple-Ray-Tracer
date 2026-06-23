@@ -10,6 +10,8 @@ Camera :: struct {
 	aspect_ratio:        f64,
 	image_width:         int,
 	samples_per_pixel:   int,
+	sqrt_spp:            int,
+	recip_sqrt_spp:      int,
 	max_depth:           int,
 	position:            Point3,
 	forward:             Point3,
@@ -94,6 +96,12 @@ camera_init :: proc(cam: ^Camera) {
 	cam.defocus_angle = aperture_from_fstop(cam.focal_length_mm, cam.fstop, cam.focus_dist)
 	cam.ev_scale = (f64(cam.iso) * cam.exposure) / (100.0 * 0.016)
 
+	// Stratified Samples
+	cam.sqrt_spp = int(math.sqrt_f64(f64(cam.samples_per_pixel)))
+	cam.pixel_samples_scale = 1.0 / f64(cam.sqrt_spp * cam.sqrt_spp)
+	cam.recip_sqrt_spp = int(1.0 / f64(cam.sqrt_spp))
+
+
 	// Determine Viewport Dimensinos
 	theta := degrees_to_radians(cam.vfov)
 	h := math.tan(theta / 2)
@@ -118,7 +126,13 @@ camera_init :: proc(cam: ^Camera) {
 	cam.defocus_disk_v = cam.up * defocus_radius
 }
 
-sense_color :: proc(r: Ray, depth: int, bg: Color, world: []Hittable) -> Color {
+sense_color :: proc(
+	r: Ray,
+	depth: int,
+	bg: Color,
+	world: []Hittable,
+	lights: []^Hittable,
+) -> Color {
 	accumulated_color := Color{0, 0, 0}
 	throughput := Color{1, 1, 1}
 	current_ray := r
@@ -130,16 +144,36 @@ sense_color :: proc(r: Ray, depth: int, bg: Color, world: []Hittable) -> Color {
 	for i := 0; i < depth; i += 1 {
 		if rec, ok := hit_world(world, current_ray, Interval{0.001, math.INF_F64}); ok {
 			// Check if ray hit light
-			if emmision, is_emmisive := color_emitted(rec.mat, rec.u, rec.v, rec.p); is_emmisive {
-				accumulated_color += throughput * emmision
+			emmision, is_emmisive := color_emitted(rec.mat, &rec, rec.u, rec.v, rec.p)
+			if is_emmisive {
+				accumulated_color += throughput * sanitize_color(emmision)
 				break
 			}
 
 			// If the ray is absorbed, we exit the loop, otherwise we finish processing
-			if attenuation, scattered, hit := scatter(rec.mat, current_ray, rec); !hit {
+			if srec, hit := scatter(rec.mat, current_ray, rec); !hit {
+				accumulated_color += throughput * sanitize_color(emmision)
 				break
 			} else {
-				throughput *= attenuation
+				// If we're ignoring PDF Functions
+				if srec.skip_pdf {
+					throughput *= srec.attenuation
+					current_ray = srec.skip_pdf_ray
+					continue
+				}
+
+				// Integrating PDF Function
+				light_ptr := hittable_pdf(lights, rec.p)
+				mixed_pdf := mixture_pdf(&light_ptr, &srec.pdf_ptr)
+
+				scattered := new_ray(rec.p, pdf_generate(&mixed_pdf), r.tm)
+				pdf_val := pdf_value(&mixed_pdf, scattered.dir)
+
+				scattered_pdf := scatter_pdf(rec.mat, current_ray, &rec, scattered)
+
+				throughput *= sanitize_color(srec.attenuation * scattered_pdf)
+				throughput /= pdf_val
+
 				current_ray = scattered
 			}
 		} else {

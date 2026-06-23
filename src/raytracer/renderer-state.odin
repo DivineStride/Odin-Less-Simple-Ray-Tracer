@@ -77,7 +77,13 @@ render_worker :: proc(t: ^thread.Thread) {
 	// Everything that was captured earlier, has been frozen until this point
 	// If we want more samples, we'll need a way to increase the amount of samples over a period of time
 	// While maintaining the samples that we've already taken.
-	render_frame_raw(&cam_snapshot, ctx.scene.bvh_world[:], ctx.scratch, frame_idx)
+	render_frame_raw(
+		&cam_snapshot,
+		ctx.scene.bvh_world[:],
+		ctx.scene.lights[:],
+		ctx.scratch,
+		frame_idx,
+	)
 
 	render_set_state(ctx, .Done)
 }

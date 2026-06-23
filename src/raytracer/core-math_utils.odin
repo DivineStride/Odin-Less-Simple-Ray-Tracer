@@ -36,16 +36,11 @@ random_vec3_range :: proc(min, max: f64) -> Vec3 {
 	return Vec3{random_f64_range(min, max), random_f64_range(min, max), random_f64_range(min, max)}
 }
 
-sample_square :: proc() -> Vec3 {
-	// Returns the vector to a random point in the [-.5, -.5] - [+.5, +.5] unit square
-	return Vec3{random_f64() - 0.5, random_f64() - 0.5, 0}
-}
-
 random_unit_vector :: proc() -> Vec3 {
 	for {
 		p := random_vec3_range(-1, 1)
 		lensq := linalg.dot(p, p)
-		if 1e-160 < lensq && lensq <= 1 {
+		if 1e-160 < lensq && lensq <= 1.0 {
 			return p / math.sqrt_f64(lensq)
 		}
 	}
@@ -57,4 +52,16 @@ random_on_hemisphere :: proc(normal: Vec3) -> Vec3 {
 		return on_unit_sphere
 	}
 	return -on_unit_sphere
+}
+
+random_cosine_direction :: proc() -> Vec3 {
+	r1 := random_f64()
+	r2 := random_f64()
+
+	phi := 2 * math.PI * r1
+	x := linalg.cos(phi) * math.sqrt(r2)
+	y := linalg.sin(phi) * math.sqrt(r2)
+	z := math.sqrt(1 - r2)
+
+	return Vec3{x, y, z}
 }
