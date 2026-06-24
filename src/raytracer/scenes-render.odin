@@ -29,13 +29,15 @@ render_world :: proc(
 	case 8:
 		scene, cam = world_cornell_box()
 	case 9:
-		scene, cam = world_cornell_smoke()
+		scene, cam = world_cornell_box_glass_sphere()
 	case 10:
+		scene, cam = world_cornell_smoke()
+	case 11:
 		scene, cam = final_scene()
 		render_overwrite.image_width = 800
 		render_overwrite.samples = 100000
 		render_overwrite.depth = 40
-	case 11:
+	case 12:
 		scene, cam = final_scene()
 		render_overwrite.image_width = 400
 		render_overwrite.samples = 250

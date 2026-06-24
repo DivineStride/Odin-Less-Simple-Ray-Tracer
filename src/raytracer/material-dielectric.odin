@@ -7,6 +7,10 @@ Dielectric :: struct {
 	refraction_index: f64,
 }
 
+make_dielectric :: proc(refraction_index: f64) -> Material {
+	return Dielectric{refraction_index}
+}
+
 scatter_dielectric :: proc(
 	mat: Dielectric,
 	r_in: Ray,

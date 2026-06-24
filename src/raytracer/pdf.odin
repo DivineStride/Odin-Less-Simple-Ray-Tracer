@@ -55,26 +55,9 @@ hittable_pdf_value :: proc(objects: []^Hittable, origin, direction: Vec3) -> f64
 		case Sphere:
 			sum += sphere_pdf_value(v, origin, direction)
 		}
-
 	}
 
 	return sum
-}
-
-quad_pdf_value :: proc(object: Quad, origin, direction: Vec3) -> f64 {
-	if rec, hit := hit_quad(object, new_ray(origin, direction), Interval{0.001, math.INF_F64});
-	   !hit {
-		return 0
-	} else {
-		distance_squared := rec.t * rec.t * linalg.length2(direction)
-		cos := math.abs(linalg.dot(direction, rec.normal) / linalg.length(direction))
-
-		return distance_squared / (cos * object.area)
-	}
-}
-
-sphere_pdf_value :: proc(object: Sphere, origin, direction: Vec3) -> f64 {
-	return 0
 }
 
 pdf_generate :: proc(p: ^Pdf) -> Vec3 {

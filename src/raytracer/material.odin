@@ -40,8 +40,12 @@ scatter :: proc(mat: ^Material, r_in: Ray, rec: Hit_Record) -> (srec: Scatter_Re
 
 scatter_pdf :: proc(material: ^Material, r_in: Ray, rec: ^Hit_Record, scattered: Ray) -> f64 {
 	switch m in material {
-	case Oren_Nayar, Lambertian, Burley:
-		return diffuse_pdf(m, r_in, rec, scattered)
+	case Lambertian:
+		return diffuse_scattering_pdf(m, r_in, rec, scattered)
+	case Oren_Nayar:
+		return oren_nayar_scattering_pdf(m, r_in, rec, scattered)
+	case Burley:
+		return burley_scattering_pdf(m, r_in, rec, scattered)
 	case Isotropic:
 		return isotropic_pdf(m, r_in, rec, scattered)
 	case Dielectric, Metal, Emissive:

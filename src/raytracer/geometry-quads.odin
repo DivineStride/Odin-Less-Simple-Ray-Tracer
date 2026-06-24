@@ -71,6 +71,18 @@ set_quad_bounding_box :: proc(quad: ^Quad) {
 	quad.bbox = aabb(bbox_diagonal1, bbox_diagonal2)
 }
 
+quad_pdf_value :: proc(object: Quad, origin, direction: Vec3) -> f64 {
+	if rec, hit := hit_quad(object, new_ray(origin, direction), Interval{0.001, math.INF_F64});
+	   !hit {
+		return 0
+	} else {
+		distance_squared := rec.t * rec.t * linalg.length2(direction)
+		cos := math.abs(linalg.dot(direction, rec.normal) / linalg.length(direction))
+
+		return distance_squared / (cos * object.area)
+	}
+}
+
 @(private)
 is_quad_interior :: proc(alpha, beta: f64, rec: ^Hit_Record) -> bool {
 	unit_interval := Interval{0, 1}

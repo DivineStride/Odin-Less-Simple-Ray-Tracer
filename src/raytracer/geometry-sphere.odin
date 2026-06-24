@@ -96,3 +96,39 @@ hit_sphere :: proc(s: Sphere, r: Ray, ray_t: Interval) -> (Hit_Record, bool) {
 
 	return rec, true
 }
+
+sphere_pdf_value :: proc(s: Sphere, origin, direction: Vec3) -> f64 {
+	// This method only works for stationary spheres
+
+	rec, hit := hit_sphere(s, new_ray(origin, direction), Interval{0.001, math.INF_F64})
+	if !hit do return 0
+
+	dist_squared := linalg.length2(ray_at(s.center, 0) - origin)
+	cos_theta_max := math.sqrt(1 - s.radius * s.radius / dist_squared)
+	solid_angle := 2 * math.PI * (1 - cos_theta_max)
+
+	return 1 / solid_angle
+}
+
+sphere_random :: proc(s: Sphere, origin: Point3) -> Vec3 {
+	direction := ray_at(s.center, 0) - origin
+
+	distance_squared := linalg.length2(direction)
+	uvw := onb(direction)
+
+	return onb_transform(&uvw, random_to_sphere(s.radius, distance_squared))
+}
+
+@(private)
+random_to_sphere :: proc(radius, distance_squared: f64) -> Vec3 {
+	r1 := random_f64()
+	r2 := random_f64()
+
+	z := 1 + r2 * (math.sqrt(1 - radius * radius / distance_squared) - 1)
+
+	phi := 2 * math.PI * r1
+	x := linalg.cos(phi) * math.sqrt(1 - z * z)
+	y := linalg.sin(phi) * math.sqrt(1 - z * z)
+
+	return Vec3{x, y, z}
+}
