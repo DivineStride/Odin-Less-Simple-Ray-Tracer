@@ -40,7 +40,7 @@ main :: proc() {
 	// We're only gettin this once, so if we want to update anything it will have to be moved
 	// If we want to adjust image width, we'll need to have this updated within the loop
 	// If want to move the camera, we will need to record the change in the loop
-	ctx.scene, ctx.cam = rt.world_perlin_spheres()
+	ctx.scene, ctx.cam = rt.world_cornell_box()
 
 	ctx.cam.image_width = WINDOW_WIDTH
 	ctx.cam.aspect_ratio = f64(WINDOW_WIDTH) / f64(WINDOW_HEIGHT)

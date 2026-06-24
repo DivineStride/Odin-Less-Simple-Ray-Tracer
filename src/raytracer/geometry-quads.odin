@@ -1,5 +1,6 @@
 package raytracer
 
+import "core:math"
 import "core:math/linalg"
 
 Quad :: struct {
@@ -8,6 +9,7 @@ Quad :: struct {
 	Q:       Point3,
 	u, v, w: Vec3,
 	D:       f64,
+	area:    f64,
 	mat:     ^Material,
 }
 
@@ -18,7 +20,9 @@ build_quad :: proc(Q: Point3, u, v: Vec3, mat: ^Material) -> Quad {
 	D := linalg.dot(normal, Q)
 	w := n / linalg.dot(n, n)
 
-	quad := Quad{bbox, normal, Q, u, v, w, D, mat}
+	area := linalg.length(n)
+
+	quad := Quad{bbox, normal, Q, u, v, w, D, area, mat}
 
 	set_quad_bounding_box(&quad)
 
@@ -29,7 +33,7 @@ hit_quad :: proc(quad: Quad, r: Ray, ray_t: Interval) -> (Hit_Record, bool) {
 	// Step 1: Find plane that contains that quad
 	denom := linalg.dot(quad.normal, r.dir)
 
-	if (linalg.abs(denom) < 1e-8) {
+	if (math.abs(denom) < 1e-8) {
 		return {}, false
 	}
 
@@ -37,6 +41,7 @@ hit_quad :: proc(quad: Quad, r: Ray, ray_t: Interval) -> (Hit_Record, bool) {
 	if !contains(ray_t, t) {
 		return {}, false
 	}
+
 	// Step 2: Solve for the intersection of a ray and the quad-containing plane.
 	// Ax + By + Cz + D = 0
 	// t = ( D - n * P ) / n * d
@@ -55,7 +60,7 @@ hit_quad :: proc(quad: Quad, r: Ray, ray_t: Interval) -> (Hit_Record, bool) {
 	rec.t = t
 	rec.p = intersection
 	rec.mat = quad.mat
-	rec.normal, _ = set_record_normal(r, quad.normal)
+	rec.normal, rec.front_face = set_record_normal(r, quad.normal)
 
 	return rec, true
 }
@@ -64,6 +69,18 @@ set_quad_bounding_box :: proc(quad: ^Quad) {
 	bbox_diagonal1 := aabb(quad.Q, quad.Q + quad.u + quad.v)
 	bbox_diagonal2 := aabb(quad.Q + quad.u, quad.Q + quad.v)
 	quad.bbox = aabb(bbox_diagonal1, bbox_diagonal2)
+}
+
+quad_pdf_value :: proc(object: Quad, origin, direction: Vec3) -> f64 {
+	if rec, hit := hit_quad(object, new_ray(origin, direction), Interval{0.001, math.INF_F64});
+	   !hit {
+		return 0
+	} else {
+		distance_squared := rec.t * rec.t * linalg.length2(direction)
+		cos := math.abs(linalg.dot(direction, rec.normal) / linalg.length(direction))
+
+		return distance_squared / (cos * object.area)
+	}
 }
 
 @(private)

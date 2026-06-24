@@ -7,7 +7,20 @@ Dielectric :: struct {
 	refraction_index: f64,
 }
 
-scatter_dielectric :: proc(mat: Dielectric, r_in: Ray, rec: Hit_Record) -> (Color, Ray, bool) {
+make_dielectric :: proc(refraction_index: f64) -> Material {
+	return Dielectric{refraction_index}
+}
+
+scatter_dielectric :: proc(
+	mat: Dielectric,
+	r_in: Ray,
+	rec: Hit_Record,
+) -> (
+	srec: Scatter_Record,
+	hit: bool,
+) {
+	srec.attenuation = Color{1, 1, 1}
+	srec.skip_pdf = true
 	ri := rec.front_face ? (1.0 / mat.refraction_index) : mat.refraction_index
 
 	unit_dir := linalg.normalize(r_in.dir)
@@ -15,16 +28,17 @@ scatter_dielectric :: proc(mat: Dielectric, r_in: Ray, rec: Hit_Record) -> (Colo
 	sin_theta := math.sqrt_f64(1.0 - cos_theta * cos_theta)
 
 	cannot_refract := ri * sin_theta > 1.0
-	direct: Vec3
+	direction: Vec3
 
 	if (cannot_refract || reflectance(cos_theta, ri) > random_f64()) {
-		direct = reflect(unit_dir, rec.normal)
+		direction = reflect(unit_dir, rec.normal)
 	} else {
-		direct = refract(unit_dir, rec.normal, ri)
+		direction = refract(unit_dir, rec.normal, ri)
 	}
 
+	srec.skip_pdf_ray = new_ray(rec.p, direction, r_in.tm)
 
-	return Color{1.0, 1.0, 1.0}, new_ray(rec.p, direct, r_in.tm), true
+	return srec, true
 }
 
 reflect :: proc(v: Vec3, normal: Vec3) -> Vec3 {
@@ -33,7 +47,6 @@ reflect :: proc(v: Vec3, normal: Vec3) -> Vec3 {
 
 refract :: proc(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
 	cos_theta := linalg.min(linalg.dot(-uv, n), 1.0)
-
 
 	r_out_perp := etai_over_etat * (uv + cos_theta * n)
 	r_out_parallel := -math.sqrt(abs(1.0 - linalg.length2(r_out_perp))) * n

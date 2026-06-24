@@ -1,7 +1,10 @@
 package raytracer
 
 import "core:fmt"
+import "core:math/rand"
 import "core:os"
+import "core:sync"
+import "core:thread"
 import "core:time"
 
 CORE_COUNT := 1
@@ -18,26 +21,65 @@ set_processor_core_count :: proc(override: int = 0) {
 	}
 }
 
-render_frame_raw :: proc(cam: ^Camera, world: []Hittable, out: []Color, frame_index: int) {
-	camera_init(cam)
+render_rows :: proc(t: ^thread.Thread) {
+	data := (^Thread_Data)(t.data)
 
-	build_render_threads(cam, world, out, false, frame_index)
+	rng_state := rand.create(data.seed)
+
+	context.random_generator = rand.default_random_generator(&rng_state)
+
+	for {
+		j := int(sync.atomic_add(data.next_row, 1)) - 1
+		if j >= data.cam.image_height do break
+
+		for i := 0; i < data.cam.image_width; i += 1 {
+			pixel_color := Color{0, 0, 0}
+			for s_j in 0 ..< data.cam.sqrt_spp {
+				for s_i in 0 ..< data.cam.sqrt_spp {
+					r := get_ray(data.cam, i, j, s_i, s_j)
+					pixel_color += sense_color(
+						r,
+						data.cam.max_depth,
+						data.cam.background,
+						data.world,
+						data.lights,
+					)
+				}
+			}
+
+			data.pixels[j * data.cam.image_width + i] = pixel_color
+		}
+
+		sync.atomic_add(data.scanlines_done, 1)
+	}
 }
 
-render_to_buffer :: proc(cam: ^Camera, world: []Hittable, buf: []u32) {
+render_frame_raw :: proc(
+	cam: ^Camera,
+	world: []Hittable,
+	lights: []^Hittable,
+	out: []Color,
+	frame_index: int,
+) {
+	camera_init(cam)
+
+	build_render_threads(cam, world, lights, out, false, frame_index)
+}
+
+render_to_buffer :: proc(cam: ^Camera, world: []Hittable, lights: []^Hittable, buf: []u32) {
 	camera_init(cam)
 
 	pixels := make([]Color, cam.image_height * cam.image_width)
 	defer delete(pixels)
 
-	build_render_threads(cam, world, pixels, false)
+	build_render_threads(cam, world, lights, pixels, false)
 
 	for c, i in pixels {
 		buf[i] = color_to_xrgb(c * cam.pixel_samples_scale, cam.ev_scale)
 	}
 }
 
-render_to_ppm :: proc(cam: ^Camera, world: []Hittable) {
+render_to_ppm :: proc(cam: ^Camera, world: []Hittable, lights: []^Hittable) {
 	camera_init(cam)
 
 	// Start Render Time Tracker
@@ -46,7 +88,7 @@ render_to_ppm :: proc(cam: ^Camera, world: []Hittable) {
 	pixels := make([]Color, cam.image_height * cam.image_width)
 	defer delete(pixels)
 
-	build_render_threads(cam, world, pixels)
+	build_render_threads(cam, world, lights, pixels)
 
 
 	// Build Image Output

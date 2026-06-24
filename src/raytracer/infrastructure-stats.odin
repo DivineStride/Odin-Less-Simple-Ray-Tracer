@@ -3,8 +3,23 @@ package raytracer
 import "core:fmt"
 import "core:math"
 import "core:os"
+import "core:sync"
+import "core:thread"
 import "core:time"
 
+track_scanlines :: proc(t: ^thread.Thread) {
+	data := (^Progress_Data)(t.data)
+
+	for {
+		done := sync.atomic_load(data.scanlines_done)
+		fmt.eprintf("\rScanlines remaining: %v    ", data.total_scanlines - int(done))
+
+		if int(done) >= data.total_scanlines do break
+		time.sleep(100 * time.Millisecond)
+	}
+
+	fmt.eprintf("\rDone.                   \n")
+}
 
 write_stats :: proc(cam: ^Camera, duration: time.Duration) {
 	num_threads := os.get_processor_core_count()

@@ -316,22 +316,27 @@ world_cornell_box :: proc() -> (scene: Scene, cam: Camera) {
 
 	red := new(Material)
 	white := new(Material)
+	metal := new(Material)
 	green := new(Material)
 	light := new(Material)
+	empty := new(Material)
 
 	append(&scene.materials, red)
 	append(&scene.materials, white)
+	append(&scene.materials, metal)
 	append(&scene.materials, green)
 	append(&scene.materials, light)
+	append(&scene.materials, empty)
 
-	red^ = make_burley(Color{.65, 0.05, 0.05}, 1)
-	white^ = make_burley(Color{.73, .73, .73}, 1)
-	green^ = make_burley(Color{.12, .45, .15}, 1)
+	red^ = make_burley(Color{.65, 0.05, 0.05}, 0.5)
+	white^ = make_burley(Color{.73, .73, .73}, 0.5)
+	metal^ = make_metal(Color{0.8, 0.85, 0.88}, 0.0)
+	green^ = make_burley(Color{.12, .45, .15}, 0.5)
 	light^ = make_emissive(Color{15, 15, 15})
 
 	box_sides := make([dynamic][]Hittable, arena_alloc)
 	box1_raw := new(Hittable)
-	box1_raw^ = Hittable(build_box(Point3{0, 0, 0}, Point3{165, 330, 165}, white, &box_sides))
+	box1_raw^ = Hittable(build_box(Point3{0, 0, 0}, Point3{165, 330, 165}, metal, &box_sides))
 
 	box1 := make_instance(box1_raw, Vec3{265, 0, 295}, Vec3{0, 15, 0})
 
@@ -342,10 +347,18 @@ world_cornell_box :: proc() -> (scene: Scene, cam: Camera) {
 
 	append(&scene.world, build_quad(Point3{555, 0, 0}, Vec3{0, 555, 0}, Vec3{0, 0, 555}, green))
 	append(&scene.world, build_quad(Point3{0, 0, 0}, Vec3{0, 555, 0}, Vec3{0, 0, 555}, red))
+
+	// Light Position
+	light_square := new(Hittable)
+	light_square^ = build_quad(Point3{343, 554, 332}, Vec3{-130, 0, 0}, Vec3{0, 0, -105}, empty)
+	append(&scene.lights, light_square)
+
+	// Actual Light
 	append(
 		&scene.world,
 		build_quad(Point3{343, 554, 332}, Vec3{-130, 0, 0}, Vec3{0, 0, -105}, light),
 	)
+
 	append(&scene.world, build_quad(Point3{0, 0, 0}, Vec3{555, 0, 0}, Vec3{0, 0, 555}, white))
 	append(
 		&scene.world,
@@ -354,6 +367,92 @@ world_cornell_box :: proc() -> (scene: Scene, cam: Camera) {
 	append(&scene.world, build_quad(Point3{0, 0, 555}, Vec3{555, 0, 0}, Vec3{0, 555, 0}, white))
 	append(&scene.world, box1)
 	append(&scene.world, box2)
+
+	// End World Declaration -----------
+
+	// Init BVH
+	world_ptrs := make([]^Hittable, len(scene.world))
+	defer delete(world_ptrs)
+
+	for i in 0 ..< len(scene.world) {
+		world_ptrs[i] = &scene.world[i]
+	}
+
+	scene.bvh = new_bvh_node(world_ptrs, 0, uint(len(scene.world)))
+	scene.bvh_world = [1]Hittable{scene.bvh}
+
+	return scene, cam
+}
+
+world_cornell_box_glass_sphere :: proc() -> (scene: Scene, cam: Camera) {
+	// Setup Camera
+	cam = camera_default()
+	camera_look_at(&cam, {278, 278, -800}, {278, 278, 0})
+	cam.aspect_ratio = 1.0
+	cam.focal_length_mm = 50
+	cam.fstop = 20
+	cam.focus_dist = 50
+	cam.background = Color{0, 0, 0}
+
+	scene_init(&scene)
+
+	arena_alloc := mem.arena_allocator(&scene.arena)
+
+	// Start World Declaration ---------
+
+	red := new(Material)
+	white := new(Material)
+	glass := new(Material)
+	green := new(Material)
+	light := new(Material)
+	empty := new(Material)
+
+	append(&scene.materials, red)
+	append(&scene.materials, white)
+	append(&scene.materials, glass)
+	append(&scene.materials, green)
+	append(&scene.materials, light)
+	append(&scene.materials, empty)
+
+	red^ = make_burley(Color{.65, 0.05, 0.05}, 0.9)
+	white^ = make_burley(Color{.73, .73, .73}, 0.9)
+	glass^ = make_dielectric(1.5)
+	green^ = make_burley(Color{.12, .45, .15}, 0.9)
+	light^ = make_emissive(Color{15, 15, 15})
+
+	box_sides := make([dynamic][]Hittable, arena_alloc)
+	box1_raw := new(Hittable)
+	box1_raw^ = Hittable(build_box(Point3{0, 0, 0}, Point3{165, 330, 165}, white, &box_sides))
+
+	box1 := make_instance(box1_raw, Vec3{265, 0, 295}, Vec3{0, 15, 0})
+
+	sphere_raw := new(Hittable)
+	sphere_raw^ = Hittable(build_sphere(Point3{0, 0, 0}, 90, glass))
+
+	sphere := make_instance(sphere_raw, Vec3{190, 90, 190}, Vec3{0, 0, 0})
+
+	append(&scene.world, build_quad(Point3{555, 0, 0}, Vec3{0, 555, 0}, Vec3{0, 0, 555}, green))
+	append(&scene.world, build_quad(Point3{0, 0, 0}, Vec3{0, 555, 0}, Vec3{0, 0, 555}, red))
+
+	// Light Position
+	light_square := new(Hittable)
+	light_square^ = build_quad(Point3{343, 554, 332}, Vec3{-130, 0, 0}, Vec3{0, 0, -105}, empty)
+	append(&scene.lights, light_square)
+
+	// Actual Light
+	append(
+		&scene.world,
+		build_quad(Point3{343, 554, 332}, Vec3{-130, 0, 0}, Vec3{0, 0, -105}, light),
+	)
+
+	append(&scene.world, build_quad(Point3{0, 0, 0}, Vec3{555, 0, 0}, Vec3{0, 0, 555}, white))
+	append(
+		&scene.world,
+		build_quad(Point3{555, 555, 555}, Vec3{-555, 0, 4}, Vec3{0, 0, -555}, white),
+	)
+	append(&scene.world, build_quad(Point3{0, 0, 555}, Vec3{555, 0, 0}, Vec3{0, 555, 0}, white))
+	append(&scene.world, box1)
+	append(&scene.world, sphere)
 
 	// End World Declaration -----------
 
